@@ -34,9 +34,10 @@ double max_error(vector<double> a, const int n){
     }
     return max_value;
 }
-void print_vector(vector<double> a, const int n){
+void print_solution(vector<double> grid, vector<double> solution, const int n){
+    cout << "Node:" << "        "<< "Value:" << endl;
     for (int i = 0; i < n; i++){
-        cout << a.at(i) << endl;
+        cout << grid.at(i) << "      " <<solution.at(i) << endl;
     }
     cout << endl;
 }
@@ -132,7 +133,7 @@ int main(){
     double a = 0;
     double b = M_PI_2;
     double lambda = 1;
-    const int n = 7; //кол-во точек
+    const int n = 11; //кол-во точек
     auto grid = linspace(a, b, n);
     auto f = fill_f(grid, n);
     auto A = fill_matrix(a, b, grid, lambda, n);
@@ -143,7 +144,7 @@ int main(){
     auto x = solve_utm(U, y, n);
     auto s = toch_solution_grid(grid, n);
     auto error = check_error(x, s, n);
-    print_vector(x, n);
+    print_solution(grid, s, n);
     cout << "Max error = "<< max_error(error, n) << endl;
     return 0;
 }
