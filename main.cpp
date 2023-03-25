@@ -133,7 +133,8 @@ int main(){
     double a = 0;
     double b = M_PI_2;
     double lambda = 1;
-    const int n = 11; //кол-во точек
+    int n = 6; //кол-во точек (будет использована квадратурная формула Симпсона, поэтому узлов будет 2n - 1)
+    n = 2 * n - 1;
     auto grid = linspace(a, b, n);
     auto f = fill_f(grid, n);
     auto A = fill_matrix(a, b, grid, lambda, n);
