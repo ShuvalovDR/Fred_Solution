@@ -1,13 +1,12 @@
 #include <iostream>
 #include <cmath>
 #include <vector>
+#include <map>
+#include <functional>
+#include <fstream>
 using namespace std;
-double my_function(double x){
-    return x;
-}
-double kern(double x, double s){
-    return sin(x + s);
-}
+
+
 double toch_solution(double x){
     return x - (8 * (M_PI - 1))/(pow(M_PI, 2) - 4) * sin(x) - 2 * (4 - 2 * M_PI + pow(M_PI, 2))/(pow(M_PI, 2) - 4) * cos(x);
 }
@@ -34,13 +33,7 @@ double max_error(vector<double> a, const int n){
     }
     return max_value;
 }
-void print_solution(vector<double> grid, vector<double> solution, const int n){
-    cout << "Node:" << "        "<< "Value:" << endl;
-    for (int i = 0; i < n; i++){
-        cout << grid.at(i) << "      " <<solution.at(i) << endl;
-    }
-    cout << endl;
-}
+
 vector<double> linspace(double a, double b, const int n){
     vector<double> grid(n);
     for (int i = 0; i < n; i++) {
@@ -48,15 +41,15 @@ vector<double> linspace(double a, double b, const int n){
     }
     return grid;
 }
-vector<double> fill_f(vector<double> grid, const int n){
+vector<double> fill_f(vector<double> grid, const int n, function<double(double, double)> my_f){
     vector<double> f(n);
     for(int i = 0; i < n; i++){
-        f.at(i) = my_function(grid.at(i));
+        f.at(i) = my_f(grid.at(i), 0);
     }
     return f;
 }
 
-vector<vector<double>> fill_matrix(double a, double b, vector<double> grid, double lambda, const int n){
+vector<vector<double>> fill_matrix(double a, double b, vector<double> grid, double lambda, const int n, function<double(double, double)> my_kern){
     vector<vector<double>> A(n, vector<double>(n));
     double h = (b - a)/(n - 1);
     double w;
@@ -71,7 +64,7 @@ vector<vector<double>> fill_matrix(double a, double b, vector<double> grid, doub
             else{
                 w = 4;
             }
-            A[i][j] = -h/3 * lambda * w * kern(grid.at(i), grid.at(j));
+            A[i][j] = -h/3 * lambda * w * my_kern(grid.at(i), grid.at(j));
         }
         A[i][i] += 1;
     }
@@ -130,14 +123,25 @@ vector<double> solve_ltm(vector<vector<double>> A, vector<double> b, const int n
 }
 
 int main(){
-    double a = 0;
-    double b = M_PI_2;
-    double lambda = 1;
-    int n = 6; //кол-во точек (будет использована квадратурная формула Симпсона, поэтому узлов будет 2n - 1)
+    map <string, function<double(double, double)>> parameters{
+            {"a", [](double x, double s) {return double(0);}},
+            {"b", [](double x, double s) {return double(M_PI_2);}},
+            {"lambda", [](double x, double s) {return double(1);}},
+            {"n", [](double x, double s) {return double(50);}},
+            {"f", [] (double x, double s) {return x;}},
+            {"kern", [] (double x, double s) {return sin(x + s);}}
+    };
+    auto a = parameters["a"](0, 0);
+    double b = parameters["b"](0, 0);
+    double lambda = parameters["lambda"](0, 0);
+    double n = parameters["n"](0, 0);; //кол-во точек (будет использована квадратурная формула Симпсона, поэтому узлов будет 2n - 1)
+    n = round(n);
     n = 2 * n - 1;
     auto grid = linspace(a, b, n);
-    auto f = fill_f(grid, n);
-    auto A = fill_matrix(a, b, grid, lambda, n);
+    auto my_f = parameters["f"];
+    auto f = fill_f(grid, n, my_f);
+    auto my_kern = parameters["kern"];
+    auto A = fill_matrix(a, b, grid, lambda, n, my_kern);
     auto p = LU(A, n);
     auto L = p.first;
     auto U = p.second;
@@ -145,7 +149,15 @@ int main(){
     auto x = solve_utm(U, y, n);
     auto s = toch_solution_grid(grid, n);
     auto error = check_error(x, s, n);
-    print_solution(grid, s, n);
-    cout << "Max error = "<< max_error(error, n) << endl;
+    double maximum_error = max_error(error, n);
+    ofstream fout;
+    fout.open("Solution.txt");
+    fout.clear();
+    fout << "First column - grid, second column - solution:" << endl;
+    for (int i = 0; i < n; i++){
+        fout << grid.at(i) << "          " <<x.at(i) << endl;
+    }
+    fout << "Maximum error is : " << maximum_error << endl;
+    fout.close();
     return 0;
 }
